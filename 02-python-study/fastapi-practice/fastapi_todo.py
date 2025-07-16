@@ -50,3 +50,45 @@ async def create_todo(request: Request, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail="DB ERROR")
+
+@app.put('/api/todos/{todo_id}')
+async def update_todo(todo_id: int, request: Request, db: Session = Depends(get_db)):
+    todo = db.query(Todo).filter(Todo.id == todo_id).first()
+
+    if not todo:
+        raise HTTPException(status_code=404, detail="Todo not found")
+
+    data = await request.json()
+
+    if not data or 'title' not in data:
+        raise HTTPException(status_code=400, detail='Missing title')
+
+    if 'title' in data:
+        todo.title = data['title']
+    if 'completed' in data:
+        todo.completed = data['completed']
+
+    try:
+        db.commit()
+        return {
+            'status' : 'success',
+            'data' : todo.to_dict()
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="DB ERROR")
+
+@app.delete('/api/todos/{todo_id}')
+def delete_todo(todo_id: int, db: Session = Depends(get_db)):
+    todo = db.query(Todo).filter(Todo.id == todo_id).first()
+    try:
+        db.delete(todo)
+        db.commit()
+        return {
+            'status' : 'success',
+            'message' : 'TODO deleted'
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="DB ERROR")
+
